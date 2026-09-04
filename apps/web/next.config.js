@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@restaurant-os/types'],
   images: {
     remotePatterns: [
       {
@@ -15,10 +14,11 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    const apiTarget = process.env.API_URL || 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${apiTarget}/api/:path*`,
       },
     ];
   },
