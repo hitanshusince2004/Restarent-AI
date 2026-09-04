@@ -1,0 +1,32 @@
+{
+  "name": "restaurant-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered multi-tenant Restaurant Operating System",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "db:migrate": "pnpm --filter @restaurant-os/api prisma:migrate",
+    "db:migrate:fresh": "pnpm --filter @restaurant-os/api prisma:migrate:fresh",
+    "db:seed": "pnpm --filter @restaurant-os/api prisma:seed",
+    "db:studio": "pnpm --filter @restaurant-os/api prisma:studio",
+    "prepare": "node -e \"try { require('husky').install() } catch (e) {}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
