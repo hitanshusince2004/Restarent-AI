@@ -73,7 +73,8 @@ export class AuthService {
           name: dto.name,
           phone: dto.phone || null,
           passwordHash,
-          status: UserStatus.PENDING_VERIFICATION,
+          status: UserStatus.ACTIVE,
+          emailVerifiedAt: new Date(),
         },
       });
 

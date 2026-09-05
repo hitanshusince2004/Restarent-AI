@@ -47,6 +47,13 @@ export default function HomePage() {
             </div>
 
             <Link
+              href="/login"
+              className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
+            >
+              Start Fresh / Login
+            </Link>
+
+            <Link
               href="/dashboard"
               className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-xs font-bold text-white transition shadow-sm"
             >
@@ -180,7 +187,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Direct access (No login barrier)</span>
+                  <span>Custom Restaurant & Clean Slate Setup</span>
                 </div>
               </div>
             </div>

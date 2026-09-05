@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { DEMO_MENU_CATEGORIES, DEMO_MENU_ITEMS, DEMO_RESTAURANT, fetchApi } from '@/lib/api';
 import { syncBus } from '@/lib/sync';
+import { restaurantStore } from '@/lib/restaurant-store';
 
 interface CartItem {
   id: string;
@@ -39,7 +40,7 @@ export default function TableOrderPage() {
   const [tableInfo, setTableInfo] = useState({
     tableNumber: 'Table 01',
     floor: 'Ground Floor Dining',
-    outlet: 'Indiranagar Main',
+    outlet: 'Main Dining Area',
     sessionId: 'session-demo-001',
   });
 
@@ -65,7 +66,46 @@ export default function TableOrderPage() {
   const [modalQuantity, setModalQuantity] = useState(1);
 
   useEffect(() => {
-    // Attempt resolving from real backend API
+    // 1. Resolve from local restaurantStore
+    const profile = restaurantStore.getProfile();
+    if (profile) {
+      setRestaurant({
+        id: profile.id,
+        name: profile.name,
+        slug: profile.slug,
+        tagline: profile.tagline || 'Fresh & Modern Dining',
+        address: profile.city || 'Dining Lounge',
+        currency: profile.currency || 'INR',
+        currencySymbol: profile.currencySymbol || '₹',
+      });
+    }
+
+    const tables = restaurantStore.getTables();
+    if (tables && tables.length > 0) {
+      const matchedTable = tables.find(
+        (t) => t.token === token || t.id.toLowerCase() === token.toLowerCase() || token.includes(t.id.toLowerCase())
+      );
+      if (matchedTable) {
+        setTableInfo({
+          tableNumber: matchedTable.number,
+          floor: matchedTable.floor || 'Dining Hall',
+          outlet: 'Main Dining Area',
+          sessionId: `session-${matchedTable.id}`,
+        });
+      }
+    }
+
+    const items = restaurantStore.getMenuItems();
+    if (items && items.length > 0) {
+      setMenuItems(items as any);
+    }
+
+    const cats = restaurantStore.getCategories();
+    if (cats && cats.length > 0) {
+      setCategories(cats);
+    }
+
+    // 2. Also attempt resolving from backend API if available
     async function loadTableData() {
       const res = await fetchApi(`/qr/resolve/${token}`);
       if (res.success && res.data) {
@@ -74,7 +114,7 @@ export default function TableOrderPage() {
           setTableInfo({
             tableNumber: res.data.table.name || `Table ${res.data.table.tableNumber || '01'}`,
             floor: res.data.table.floor?.name || 'Ground Floor Dining',
-            outlet: res.data.outlet?.name || 'Indiranagar Main',
+            outlet: res.data.outlet?.name || 'Main Dining Area',
             sessionId: res.data.tableSession?.id || 'session-live',
           });
         }

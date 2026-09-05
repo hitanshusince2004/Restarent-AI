@@ -27,10 +27,13 @@ import {
   Check,
   Copy,
   Smartphone,
-  Home
+  Home,
+  Trash2,
+  LogOut
 } from 'lucide-react';
 import { DEMO_MENU_ITEMS, DEMO_MENU_CATEGORIES, DEMO_RESTAURANT, MenuItem } from '@/lib/api';
 import { syncBus } from '@/lib/sync';
+import { restaurantStore, RestaurantProfile, TableItem } from '@/lib/restaurant-store';
 
 type TabKey = 'overview' | 'orders' | 'floors' | 'menu' | 'ai-import' | 'bills' | 'staff';
 
@@ -49,22 +52,23 @@ export default function DashboardPage() {
   const [liveOrders, setLiveOrders] = useState<any[]>([]);
 
   // Tables & Floors: All tables start OPEN and available
-  const [tables, setTables] = useState([
-    { id: 'T-01', number: 'Table 01', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-02', number: 'Table 02', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-03', number: 'Table 03', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-04', number: 'Table 04', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-05', number: 'Table 05', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-06', number: 'Table 06', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-07', number: 'Table 07', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
-    { id: 'T-08', number: 'Table 08', status: 'OPEN', guests: 0, bill: '₹0', time: '-' },
+  const [tables, setTables] = useState<any[]>([
+    { id: 'T-01', number: 'Table 01', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t1-indiranagar-token-001' },
+    { id: 'T-02', number: 'Table 02', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t2-indiranagar-token-002' },
+    { id: 'T-03', number: 'Table 03', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t3-indiranagar-token-003' },
+    { id: 'T-04', number: 'Table 04', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t4-indiranagar-token-004' },
+    { id: 'T-05', number: 'Table 05', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t5-indiranagar-token-005' },
+    { id: 'T-06', number: 'Table 06', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t6-indiranagar-token-006' },
+    { id: 'T-07', number: 'Table 07', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t7-indiranagar-token-007' },
+    { id: 'T-08', number: 'Table 08', floor: 'Ground Dining', status: 'OPEN', guests: 0, bill: '₹0', time: '-', token: 'qr-spice-t8-indiranagar-token-008' },
   ]);
 
   const [toastNotification, setToastNotification] = useState<string | null>(null);
+  const [profile, setProfile] = useState<RestaurantProfile | null>(null);
 
   // Selected Table for QR Code Modal
   const [selectedTableForQr, setSelectedTableForQr] = useState<any | null>(null);
-  const [phoneServerIp, setPhoneServerIp] = useState('192.168.1.204');
+  const [phoneServerIp, setPhoneServerIp] = useState('192.168.1.205');
   const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Menu items state
@@ -100,8 +104,33 @@ export default function DashboardPage() {
     { id: 'st-4', name: 'Table Server', email: 'server@spicesymphony.in', role: 'STAFF', status: 'ACTIVE' },
   ];
 
-  // Subscribe to real-time events across tabs/devices
+  // Load stored data and subscribe to real-time events across tabs/devices
   useEffect(() => {
+    // 1. Fetch detected machine LAN IP for phone QR scanning
+    fetch('/api/network-ip')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.primaryIp) setPhoneServerIp(data.primaryIp);
+      })
+      .catch(() => {
+        if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          setPhoneServerIp(window.location.hostname);
+        }
+      });
+
+    // 2. Load restaurant profile & tables & menu
+    const p = restaurantStore.getProfile();
+    if (p) setProfile(p);
+
+    const t = restaurantStore.getTables();
+    if (t && t.length > 0) setTables(t as any);
+
+    const m = restaurantStore.getMenuItems();
+    if (m && m.length > 0) setMenuItems(m as any);
+
+    const o = restaurantStore.getOrders();
+    if (o && o.length > 0) setLiveOrders(o);
+
     const unsub = syncBus.subscribe((event) => {
       if (event.type === 'ORDER_PLACED') {
         const ord = event.payload;
@@ -152,11 +181,11 @@ export default function DashboardPage() {
   }, []);
 
   const handleToggleStock = (id: string) => {
-    setMenuItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, inStock: !item.inStock } : item
-      )
+    const updated = menuItems.map((item) =>
+      item.id === id ? { ...item, inStock: !item.inStock } : item
     );
+    setMenuItems(updated);
+    restaurantStore.saveMenuItems(updated as any);
   };
 
   const handleAddNewItem = (e: React.FormEvent) => {
@@ -173,7 +202,9 @@ export default function DashboardPage() {
       inStock: true,
       image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80',
     };
-    setMenuItems([newItem, ...menuItems]);
+    const updated = [newItem, ...menuItems];
+    setMenuItems(updated);
+    restaurantStore.saveMenuItems(updated as any);
     setIsAddItemModalOpen(false);
     setNewItemForm({ name: '', price: '', categoryId: 'cat-mains', isVeg: true, description: '' });
   };
@@ -206,17 +237,32 @@ export default function DashboardPage() {
       inStock: true,
       image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80',
     }));
-    setMenuItems((prev) => [...newlyImported, ...prev]);
+    const updated = [...newlyImported, ...menuItems];
+    setMenuItems(updated);
+    restaurantStore.saveMenuItems(updated as any);
     setActiveTab('menu');
     setAiStep('upload');
   };
 
-  const phoneUrl = `http://${phoneServerIp}:3000/t/qr-spice-t1-indiranagar-token-001`;
+  const currentTableToken =
+    selectedTableForQr?.token || (tables.length > 0 ? tables[0].token : 'qr-spice-t1-indiranagar-token-001');
+  const phoneUrl = `http://${phoneServerIp}:3000/t/${currentTableToken}`;
 
   const handleCopyPhoneUrl = () => {
     navigator.clipboard.writeText(phoneUrl);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2500);
+  };
+
+  const handleWipeDataAndStartFresh = () => {
+    if (
+      confirm(
+        'Are you sure you want to wipe all pre-existing data? This will clear all tables, menu items, orders, and take you to the fresh onboarding page.'
+      )
+    ) {
+      restaurantStore.wipeAllData();
+      window.location.href = '/login';
+    }
   };
 
   return (
@@ -229,12 +275,12 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center font-bold text-white shadow-sm">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-extrabold text-sm text-slate-900 tracking-tight font-heading">
-                Restaurant OS
+            <div className="min-w-0">
+              <h2 className="font-extrabold text-sm text-slate-900 tracking-tight font-heading truncate">
+                {profile?.name || 'Restaurant OS'}
               </h2>
-              <span className="badge badge-amber text-[9px] py-0 px-1.5">
-                EXECUTIVE CONSOLE
+              <span className="badge badge-amber text-[9px] py-0 px-1.5 truncate">
+                {profile?.ownerName || 'EXECUTIVE CONSOLE'}
               </span>
             </div>
           </div>
@@ -350,14 +396,29 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight font-heading">
-                  Executive Dining Dashboard
+                  {profile?.name || 'Executive Dining Dashboard'}
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Live operating metrics for Restaurant OS (Indiranagar Outlet) • Clean Slate Ready
+                  Live operating metrics for {profile?.name || 'Restaurant OS'} ({profile?.city || 'Dining Area'}) • Clean Slate Ready
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleWipeDataAndStartFresh}
+                  className="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 transition"
+                  title="Wipe mock data and start 100% fresh"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Wipe Pre-Data</span>
+                </button>
+                <a
+                  href="/login"
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Switch Restaurant</span>
+                </a>
                 <button
                   onClick={() => setActiveTab('ai-import')}
                   className="btn-primary text-xs"
@@ -895,7 +956,7 @@ export default function DashboardPage() {
             {/* QR Code Visual Image */}
             <div className="my-4 p-3 bg-white border border-slate-200 rounded-xl inline-block shadow-sm">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=http://${phoneServerIp}:3000/t/qr-spice-t1-indiranagar-token-001`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(phoneUrl)}`}
                 alt="Table QR Code"
                 className="w-48 h-48 mx-auto"
               />
@@ -914,7 +975,7 @@ export default function DashboardPage() {
                 </button>
               </div>
               <div className="font-mono text-slate-800 break-all select-all font-medium">
-                http://{phoneServerIp}:3000/t/qr-spice-t1-indiranagar-token-001
+                {phoneUrl}
               </div>
 
               {/* IP Input Helper */}
@@ -925,14 +986,14 @@ export default function DashboardPage() {
                   value={phoneServerIp}
                   onChange={(e) => setPhoneServerIp(e.target.value)}
                   className="flex-1 px-2 py-1 text-xs rounded border border-slate-300 bg-white font-mono"
-                  placeholder="192.168.1.204"
+                  placeholder="192.168.1.205"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <a
-                href="/t/qr-spice-t1-indiranagar-token-001"
+                href={`/t/${currentTableToken}`}
                 target="_blank"
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-105 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
               >

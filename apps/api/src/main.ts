@@ -46,10 +46,19 @@ async function bootstrap() {
   );
 
   // ─────────────────────────────────────────────
-  // CORS
+  // CORS (Permissive for local development & phone LAN access)
   // ─────────────────────────────────────────────
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        corsOrigins.includes(origin) ||
+        /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Idempotency-Key'],
@@ -147,8 +156,8 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(port);
-  console.log(`\n🚀 Restaurant OS API running on http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`\n🚀 Restaurant OS API running on http://0.0.0.0:${port} (accessible via LAN IP)`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
   console.log(`🏥 Health check: http://localhost:${port}/api/v1/health\n`);
 }
